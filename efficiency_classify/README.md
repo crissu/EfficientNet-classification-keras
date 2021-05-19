@@ -1,4 +1,4 @@
-＃使用EfficientNet训练自己的分类器
+＃使用EfficientNet训练自己的分类模型
 
 博客地址：https://blog.csdn.net/qq_42940160/article/details/117049302
 
