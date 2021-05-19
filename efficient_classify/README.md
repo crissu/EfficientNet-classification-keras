@@ -5,6 +5,7 @@ CSDN：https://blog.csdn.net/qq_42940160/article/details/117049302
 ## 1.requirements
 
 ```c
+python=3.6  #必须
 keras=2.1.5
 tensorflow-gpu=1.13.1
   
