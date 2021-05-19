@@ -1,0 +1,2 @@
+# EfficientNet-classification-keras
+本库包含了完整的EfficientNet系列模型的训练以及预测过程，对代码进行了人性化的改造，更容易读懂
