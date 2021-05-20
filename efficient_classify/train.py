@@ -10,7 +10,33 @@ from keras.optimizers import Adam
 from utils.data_gen_label import data_flow
 from utils.warmup_cosine_decay_scheduler import WarmUpCosineDecayScheduler
 import efficientnet.keras as efn
+from sklearn.utils import class_weight
+import numpy as np
 backend.set_image_data_format('channels_last')
+
+os.environ['CUDA_VISIBLE_DEVICES'] = "2"
+
+
+def get_class_weights():
+    with open('train.txt', 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    train_y = []
+    for line in lines:
+        label = line.split(' ')[1].replace('\n','')
+        train_y.append(label)
+
+    # print('train_y:',train_y)
+
+    class_weights = class_weight.compute_class_weight('balanced',
+                                                      np.unique(train_y),
+                                                      train_y)
+    # class_weight需要为字典形式
+    class_weight_dict = dict(enumerate(class_weights))
+
+    print('the class_weight is:',class_weight_dict)
+
+    return class_weight_dict
 
 
 def model_fn(FLAGS, objective, optimizer, metrics):
@@ -18,10 +44,10 @@ def model_fn(FLAGS, objective, optimizer, metrics):
     一共有 EfficientNetB0-7可以选择，数字从高到底，模型越来越大，这样意味着模型越来越准确
     weights=None, 表示不使用 官方的在imagenet数据集上的权重，如需要请改为：weights='imagenet'
     '''
-    # 使用efficientnetB7
-    base_model = efn.EfficientNetB7(include_top=False, weights=None,
-                                    shape=(FLAGS['input_size'], FLAGS['input_size'], 3),
-                                    n_class=FLAGS['num_classes'])
+    # 使用efficientnetB6
+    base_model = efn.EfficientNetB6(include_top=False, weights=FLAGS['imagenet_weights'],
+                                    input_shape=(FLAGS['input_size'], FLAGS['input_size'], 3),
+                                    classes=FLAGS['num_classes'])
 
     x = base_model.output
     x = GlobalAveragePooling2D(name='avg_pool')(x)
@@ -39,6 +65,7 @@ def train_model(FLAGS, str2int):
     train_sequence, validation_sequence = data_flow(FLAGS['data_local'], FLAGS['batch_size'],
                                                     FLAGS['num_classes'], FLAGS['input_size'], preprocess_input, str2int)
 
+    #============================================================
     optimizer = Adam(lr=FLAGS['learning_rate'])
 
     objective = 'categorical_crossentropy'
@@ -49,12 +76,15 @@ def train_model(FLAGS, str2int):
     if os.path.exists(FLAGS['pre_weights']):
         print('use pre_trained model {}'.format(FLAGS['pre_weights']))
         model.load_weights(FLAGS['pre_weights'])
+    #============================================================
 
     log_dir = './logs/'
     logging = TensorBoard(log_dir=log_dir)
     checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5',
                                  monitor='val_acc', save_best_only=True, save_weights_only=True)
 
+
+    #============================================================
     num_train = len(train_sequence)  # 训练集个数
     sample_count = len(train_sequence) * FLAGS['batch_size']
     epochs = FLAGS['epochs']
@@ -71,18 +101,36 @@ def train_model(FLAGS, str2int):
                                             warmup_steps=warmup_steps,
                                             hold_base_rate_steps=num_train,
                                             )
+    #============================================================
 
-    model.fit_generator(
-        train_sequence,
-        steps_per_epoch=len(train_sequence),
-        epochs=epochs,
-        verbose=1,
-        callbacks=[checkpoint, logging, reduce_lr],
-        validation_data=validation_sequence,
-        max_queue_size=10,
-        shuffle=True,
-        class_weight='auto'
-    )
+    if FLAGS['class_weight'] == True:
+
+        # 计算class_weight
+        class_weight = get_class_weights()
+
+        model.fit_generator(
+            train_sequence,
+            steps_per_epoch=len(train_sequence),
+            epochs=epochs,
+            verbose=1,
+            callbacks=[checkpoint, logging, reduce_lr],
+            validation_data=validation_sequence,
+            max_queue_size=10,
+            shuffle=True,
+            class_weight=class_weight
+        )
+
+    else:
+        model.fit_generator(
+            train_sequence,
+            steps_per_epoch=len(train_sequence),
+            epochs=epochs,
+            verbose=1,
+            callbacks=[checkpoint, logging, reduce_lr],
+            validation_data=validation_sequence,
+            max_queue_size=10,
+            shuffle=True,
+        )
 
     print('training done!')
 
@@ -92,16 +140,18 @@ if __name__ == '__main__':
     # 修改相应的参数
     FLAGS = {
          'data_local': './train.txt',   # 训练数据集路径
-         'batch_size': 2,           # 如果爆显存 把batch_size改小一点
+         'batch_size': 8,           # 如果爆显存 把batch_size改小一点
         'num_classes': 3,           # 期望分的类别
-         'input_size': 300,         # 图片尺寸，默认为300x300
+         'input_size': 400,         # 图片尺寸，默认为300x300，现存越大，输入尺寸也可越大
       'learning_rate': 1e-3,        # 学习率
+       'class_weight': True,        # 是否开启class_weight, 当类别不均衡时建议开启
 
-             'epochs': 1000,        # 训练轮数
+             'epochs': 300,         # 训练轮数
         'pre_weights': '',          # 使用迁移学习时，此除填写预训练权重路径，存放在model_data路径下
-
+   'imagenet_weights': 'imagenet'   # 是否加载imagenet预训练权重，默认值为'imagenet'，使用None不加载与训练权重，数据量少时建议开启
     }
 
-    str2int = {'chengchong':0, 'youchong':1, 'luan':2}  #将字符标签转换成 int 标签，方便模型训练，训练自己的模型时注意修改为自己的类别
+    # 标签顺序，需要和 train.txt文件中从上到下的标签顺序一致，否则class_weight的key无法和标签对应上
+    str2int = {'chengchong':0, 'luan':1,'youchong':2}  #将字符标签转换成 int 标签，方便模型训练，训练自己的模型时注意修改为自己的类别
 
     train_model(FLAGS,str2int)

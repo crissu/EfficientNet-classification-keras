@@ -17,7 +17,7 @@ class classification_picture:
         'num_classes': 3,
         'input_size': 300,
         'learning_rate': 1e-3,
-        'pre_weights': './model_data/logsep001-loss0.787-val_loss0.608.h5',  # 预训练权重路径
+        'pre_weights': './model_data/ep001-loss1.229-val_loss0.942.h5',  # 预训练权重路径
     }
 
     def __init__(self):
@@ -36,8 +36,8 @@ class classification_picture:
         objective = 'categorical_crossentropy'
         metrics = ['accuracy']
 
-        # 使用B7网络
-        base_model = efn.EfficientNetB7(include_top=False,
+        # 使用B6网络
+        base_model = efn.EfficientNetB6(include_top=False, weights=None,
                                         shape=(self.input_size, self.input_size, 3),
                                         n_class=self.num_classes)
 
@@ -60,14 +60,14 @@ class classification_picture:
         :param model: 模型名称
         :return: pre_name返回预测的名字; pre_type返回预测的索引
         '''
-        classes_name_list = ['chengchong', 'youchong', 'luan']
+        classes_name_list = ['chengchong', 'luan','youchong']
 
         test_img = img.resize((300, 300))
         test_img = np.array(test_img)  # 将Image实例转化为多维数组
         test_img = test_img / 255  # 此处还需要将0-255转化为0-1
         test_img = np.expand_dims(test_img, 0)  # 将三维输入图像拓展成四维张量
         pred = self.model.predict(test_img)  # 预测
-        # print('pred:',pred)
+        print('pred socre:',pred)
         # print('分类预测结果：', end='')
         # print(classes_name_list[pred.argmax()])  # 打印结果
         pre_type = pred.argmax()
