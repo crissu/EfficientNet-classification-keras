@@ -43,21 +43,22 @@ tensorflow-gpu=1.13.1
 在该文件的底部修改自己的模型参数
 
 ```c
-if __name__ == '__main__':
-    # 修改相应的参数
+# 修改相应的参数
     FLAGS = {
          'data_local': './train.txt',   # 训练数据集路径
-         'batch_size': 2,           # 如果爆显存 把batch_size改小一点
-        'num_classes': 3,           # ！！！注意修改为自己对应的类别
-         'input_size': 300,         # 图片尺寸，默认为300x300，！这个不要修改，不要修改，你改不明白！！！
+         'batch_size': 8,           # 如果爆显存 把batch_size改小一点
+        'num_classes': 3,           # 期望分的类别
+         'input_size': 400,         # 图片尺寸，默认为300x300，现存越大，输入尺寸也可越大
       'learning_rate': 1e-3,        # 学习率
+       'class_weight': True,        # 是否开启class_weight, 当类别不均衡时建议开启
 
-             'epochs': 1000,				# 训练轮数
+             'epochs': 300,         # 训练轮数
         'pre_weights': '',          # 使用迁移学习时，此除填写预训练权重路径，存放在model_data路径下
-
+   'imagenet_weights': 'imagenet'   # 是否加载imagenet预训练权重，默认值为'imagenet'，使用None不加载与训练权重，数据量少时建议开启
     }
 
-    str2int = {'chengchong':0, 'youchong':1, 'luan':2}  #将字符标签转换成 int 标签，方便模型训练，训练自己的模型时注意修改为自己的类别
+    # 标签顺序，需要和 train.txt文件中从上到下的标签顺序一致，否则class_weight的key无法和标签对应上
+    str2int = {'chengchong':0, 'luan':1,'youchong':2}  #将字符标签转换成 int 标签，方便模型训练，训练自己的模型时注意修改为自己的类别
 
     train_model(FLAGS,str2int)
 ```
