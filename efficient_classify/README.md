@@ -89,6 +89,13 @@ _FLAGS = {
         'pre_weights': './model_data/logsep001-loss0.787-val_loss0.608.h5',  # 预训练权重路径
     }
 ```
+PS：注意对load_model中加载的模型进行更改，要和训练时的model对应。
+```c
+# 注意修改
+base_model = efn.EfficientNetB4(include_top=False, weights=None,
+                                        shape=(self.input_size, self.input_size, 3),
+                                        n_class=self.num_classes)
+```
 
 运行efficient.py，对单张图片进行预测
 
