@@ -43,18 +43,32 @@ tensorflow-gpu=1.13.1
 在该文件的底部修改自己的模型参数
 
 ```c
-# 修改相应的参数
+if __name__ == '__main__':
+    # 修改相应的参数
+    '''
+    不同模型对应的input_size，以下将EfficientNetBX简称EN，尽管可以随意写input_size，但请按照论文中的要求去写
+            ENB0：224
+            ENB1：240
+            ENB2：260
+            ENB3：300
+            ENB4：380
+            ENB5：456
+            ENB6：528
+            ENB7：600
+    '''
+
     FLAGS = {
          'data_local': './train.txt',   # 训练数据集路径
-         'batch_size': 8,           # 如果爆显存 把batch_size改小一点
-        'num_classes': 3,           # 期望分的类别
-         'input_size': 400,         # 图片尺寸，默认为300x300，现存越大，输入尺寸也可越大
-      'learning_rate': 1e-3,        # 学习率
-       'class_weight': True,        # 是否开启class_weight, 当类别不均衡时建议开启
+         'batch_size': 8,            # 如果爆显存 把batch_size改小一点
+        'num_classes': 3,            # 期望分的类别
+                 'id': 4,            # 选择不同版本的EfficientNet网络，值为0-7
+        'input_size': 380,           # 输入网络的图片分辨率，参数在上面注释中
+      'learning_rate': 1e-3,         # 学习率
+       'class_weight': True,         # 是否开启class_weight, 当类别不均衡时建议开启
 
-             'epochs': 300,         # 训练轮数
-        'pre_weights': '',          # 使用迁移学习时，此除填写预训练权重路径，存放在model_data路径下
-   'imagenet_weights': 'imagenet'   # 是否加载imagenet预训练权重，默认值为'imagenet'，使用None不加载与训练权重，数据量少时建议开启
+             'epochs': 300,          # 训练轮数
+        'pre_weights': '',           # 使用迁移学习时，此除填写预训练权重路径，存放在model_data路径下
+   'imagenet_weights': 'imagenet',   # 是否加载imagenet预训练权重，默认值为'imagenet'，使用None不加载与训练权重，数据量少时建议开启
     }
 
     # 标签顺序，需要和 train.txt文件中从上到下的标签顺序一致，否则class_weight的key无法和标签对应上
